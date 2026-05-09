@@ -140,22 +140,6 @@
 		{/each}
 	</Sidebar.Content>
 
-	<!-- Go Pro CTA -->
-	<div class="px-3 py-2">
-		<a
-			href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=sidebar&utm_campaign=go-pro"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="group flex items-center gap-2 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2.5 transition-all hover:border-amber-500 hover:bg-amber-500/10"
-		>
-			<CrownIcon class="size-4 text-amber-500" />
-			<span class="flex-1 text-sm font-semibold">Go Pro</span>
-			<Badge class="bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-600">PRO</Badge>
-			<ExternalLinkIcon
-				class="text-muted-foreground size-3 transition-transform group-hover:translate-x-0.5"
-			/>
-		</a>
-	</div>
 
 	<Sidebar.Footer>
 		<Sidebar.Menu>

@@ -507,37 +507,3 @@ pnpm add -D @types/d3-scale @types/d3-array @types/d3-shape</code
 	</tbody>
 </table>
 
-<h2>Need More?</h2>
-
-<div
-	class="not-prose border-primary/30 bg-primary/5 my-8 rounded-xl border-2 border-dashed p-6 sm:p-8"
->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-		<div class="flex-1">
-			<h3 class="text-foreground text-lg font-bold sm:text-xl">
-				Advanced Analytics with DashboardPack
-			</h3>
-			<p class="text-muted-foreground mt-2 text-sm leading-relaxed">
-				Need 10+ chart types, real-time data streaming, and advanced analytics dashboards? Our
-				premium templates ship with Recharts 3 integration, 5 dashboard layout variants, date range
-				pickers, exportable reports, and drill-down data tables — all production-ready.
-			</p>
-			<ul class="text-muted-foreground mt-3 space-y-1 text-sm">
-				<li>Recharts 3 with 10+ chart types (Radar, Treemap, Funnel, Sankey, and more)</li>
-				<li>Real-time data with WebSocket-powered live updates</li>
-				<li>5 dashboard variants: Analytics, E-commerce, CRM, SaaS, and Project Management</li>
-				<li>Date range filtering, CSV/PDF export, and scheduled reports</li>
-			</ul>
-		</div>
-		<div class="shrink-0">
-			<a
-				href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=docs&utm_campaign=premium"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition-colors"
-			>
-				Go Premium
-			</a>
-		</div>
-	</div>
-</div>

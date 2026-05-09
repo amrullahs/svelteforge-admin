@@ -1,83 +1,103 @@
 import { db } from "$lib/server/db/index.js";
-import { users } from "$lib/server/db/schema.js";
-import { fail } from "@sveltejs/kit";
-import { eq, sql } from "drizzle-orm";
-import type { Actions, PageServerLoad } from "./$types.js";
-
-const roleDefinitions = [
-	{
-		name: "admin" as const,
-		description: "Full system access. Can manage users, content, settings, and view database info.",
-		permissions: [
-			"Manage users",
-			"Manage content",
-			"Manage settings",
-			"View database",
-			"Manage roles",
-		],
-	},
-	{
-		name: "editor" as const,
-		description: "Can create and edit content. Cannot manage users or system settings.",
-		permissions: ["Create content", "Edit content", "Delete own content", "View analytics"],
-	},
-	{
-		name: "viewer" as const,
-		description: "Read-only access. Can view content and their own profile.",
-		permissions: ["View content", "View dashboard", "Edit own profile"],
-	},
-];
+import { roles, permissions, rolePermissions, users } from "$lib/server/db/schema.js";
+import { fail, type Actions } from "@sveltejs/kit";
+import { eq, sql, and } from "drizzle-orm";
+import type { PageServerLoad } from "./$types.js";
+import { scanAndBuildPermissions } from "$lib/server/permissions.js";
 
 export const load: PageServerLoad = async () => {
-	const allUsers = await db
+	let allPermissions = await db.select().from(permissions).orderBy(permissions.key);
+	
+	// Auto-scan if no permissions found
+	if (allPermissions.length === 0) {
+		await scanAndBuildPermissions();
+		allPermissions = await db.select().from(permissions).orderBy(permissions.key);
+	}
+
+	const allRoles = await db.select().from(roles);
+	const allRolePermissions = await db.select().from(rolePermissions);
+	
+	// Get user counts per role
+	const userCounts = await db
 		.select({
-			id: users.id,
-			name: users.name,
-			email: users.email,
 			role: users.role,
+			count: sql<number>`count(*)`
 		})
 		.from(users)
-		.orderBy(users.name);
+		.groupBy(users.role);
 
-	const roles = roleDefinitions.map((role) => ({
+	const rolesWithMeta = allRoles.map(role => ({
 		...role,
-		users: allUsers.filter((u) => u.role === role.name),
-		count: allUsers.filter((u) => u.role === role.name).length,
+		userCount: userCounts.find(c => c.role === role.id)?.count || 0,
+		permissions: allRolePermissions
+			.filter(rp => rp.roleId === role.id)
+			.map(rp => rp.permissionId)
 	}));
 
-	return { roles };
+	return {
+		roles: rolesWithMeta,
+		permissions: allPermissions
+	};
 };
 
 export const actions: Actions = {
-	changeRole: async ({ request }) => {
+	scan: async () => {
+		const count = await scanAndBuildPermissions();
+		return { success: true, count };
+	},
+
+	createRole: async ({ request }) => {
 		const formData = await request.formData();
-		const userId = formData.get("userId");
-		const newRole = formData.get("newRole");
+		const name = formData.get("name") as string;
+		const description = formData.get("description") as string;
 
-		if (typeof userId !== "string") {
-			return fail(400, { message: "User ID is required" });
-		}
-		if (typeof newRole !== "string" || !["admin", "editor", "viewer"].includes(newRole)) {
-			return fail(400, { message: "Invalid role" });
-		}
+		if (!name) return fail(400, { message: "Name is required" });
 
-		// Prevent demotion of last admin
-		const [target] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId));
-		if (target?.role === "admin" && newRole !== "admin") {
-			const [adminCount] = await db
-				.select({ count: sql<number>`count(*)` })
-				.from(users)
-				.where(eq(users.role, "admin"));
-			if (adminCount.count <= 1) {
-				return fail(400, { message: "Cannot demote the last admin" });
-			}
+		const id = name.toLowerCase().replace(/\s+/g, "-");
+		
+		try {
+			await db.insert(roles).values({
+				id,
+				name,
+				description
+			});
+			return { success: true };
+		} catch (e) {
+			return fail(500, { message: "Role already exists or database error" });
 		}
+	},
 
-		await db
-			.update(users)
-			.set({ role: newRole as "admin" | "editor" | "viewer", updatedAt: new Date() })
-			.where(eq(users.id, userId));
+	updatePermissions: async ({ request }) => {
+		const formData = await request.formData();
+		const roleId = formData.get("roleId") as string;
+		const selectedPerms = formData.getAll("permissions") as string[];
+
+		if (!roleId) return fail(400, { message: "Role ID is required" });
+		if (roleId === "admin") return fail(400, { message: "Cannot modify admin permissions" });
+
+		// Delete existing and insert new
+		await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+		
+		if (selectedPerms.length > 0) {
+			const values = selectedPerms.map(pId => ({
+				roleId,
+				permissionId: pId
+			}));
+			await db.insert(rolePermissions).values(values);
+		}
 
 		return { success: true };
 	},
+
+	deleteRole: async ({ request }) => {
+		const formData = await request.formData();
+		const id = formData.get("id") as string;
+
+		if (["admin", "editor", "viewer"].includes(id)) {
+			return fail(400, { message: "Cannot delete system roles" });
+		}
+
+		await db.delete(roles).where(eq(roles.id, id));
+		return { success: true };
+	}
 };

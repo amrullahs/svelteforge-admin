@@ -179,8 +179,7 @@ export const actions: Actions = {
 			await db
 				.insert(appSettings)
 				.values({ key, value, updatedAt: new Date() })
-				.onConflictDoUpdate({
-					target: appSettings.key,
+				.onDuplicateKeyUpdate({
 					set: { value, updatedAt: new Date() },
 				});
 		}
@@ -243,8 +242,7 @@ export const actions: Actions = {
 			await db
 				.insert(appSettings)
 				.values({ key: settingKey, value, updatedAt: new Date() })
-				.onConflictDoUpdate({
-					target: appSettings.key,
+				.onDuplicateKeyUpdate({
 					set: { value, updatedAt: new Date() },
 				});
 		}

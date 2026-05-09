@@ -92,16 +92,6 @@
 			<a href="/docs" class="text-sm font-medium">Docs</a>
 
 			<div class="ml-auto flex items-center gap-3">
-				<a
-					href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=docs-header&utm_campaign=premium"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="bg-primary text-primary-foreground hover:bg-primary/90 hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:flex"
-				>
-					<ZapIcon class="size-3" />
-					Go Premium
-					<ExternalLinkIcon class="size-3" />
-				</a>
 				<a href="/" class="text-muted-foreground hover:text-foreground text-sm transition-colors">
 					Back to App
 				</a>
@@ -154,26 +144,6 @@
 						</div>
 					{/each}
 
-					<!-- DashboardPack Promo in Sidebar -->
-					<div class="border-t pt-4">
-						<a
-							href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=docs-sidebar&utm_campaign=premium"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="group hover:border-primary hover:bg-primary/5 block rounded-lg border border-dashed p-3 transition-colors"
-						>
-							<div class="flex items-center gap-2">
-								<ZapIcon class="text-primary size-4" />
-								<span class="text-sm font-semibold">Go Premium</span>
-								<ExternalLinkIcon
-									class="text-muted-foreground size-3 transition-transform group-hover:translate-x-0.5"
-								/>
-							</div>
-							<p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-								50+ pages, 5 dashboards, CRUD, theme customizer &amp; more on DashboardPack.
-							</p>
-						</a>
-					</div>
 				</nav>
 			</aside>
 
@@ -195,3 +165,4 @@
 		</div>
 	</div>
 </div>
+

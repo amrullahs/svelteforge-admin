@@ -1,5 +1,38 @@
 import { mysqlTable, varchar, text, timestamp, boolean, mysqlEnum, uniqueIndex, int, bigint } from "drizzle-orm/mysql-core";
 
+export const roles = mysqlTable("roles", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	name: varchar("name", { length: 255 }).notNull().unique(),
+	description: text("description"),
+	createdAt: timestamp("created_at")
+		.notNull()
+		.$defaultFn(() => new Date()),
+	updatedAt: timestamp("updated_at")
+		.notNull()
+		.$defaultFn(() => new Date()),
+});
+
+export const permissions = mysqlTable("permissions", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	key: varchar("key", { length: 255 }).notNull().unique(), // e.g., "users:view"
+	name: varchar("name", { length: 255 }).notNull(),
+	description: text("description"),
+	createdAt: timestamp("created_at")
+		.notNull()
+		.$defaultFn(() => new Date()),
+});
+
+export const rolePermissions = mysqlTable("role_permissions", {
+	roleId: varchar("role_id", { length: 255 })
+		.notNull()
+		.references(() => roles.id, { onDelete: "cascade" }),
+	permissionId: varchar("permission_id", { length: 255 })
+		.notNull()
+		.references(() => permissions.id, { onDelete: "cascade" }),
+}, (table) => [
+	uniqueIndex("role_permission_idx").on(table.roleId, table.permissionId)
+]);
+
 export const users = mysqlTable("users", {
 	id: varchar("id", { length: 255 }).primaryKey(),
 	email: varchar("email", { length: 255 }).notNull().unique(),
@@ -7,9 +40,7 @@ export const users = mysqlTable("users", {
 	passwordHash: text("password_hash").notNull(),
 	name: varchar("name", { length: 255 }).notNull(),
 	avatarUrl: text("avatar_url"),
-	role: mysqlEnum("role", ["admin", "editor", "viewer"])
-		.notNull()
-		.default("viewer"),
+	role: varchar("role", { length: 50 }).notNull().default("viewer"),
 	createdAt: timestamp("created_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
@@ -107,3 +138,6 @@ export type NewPage = typeof pages.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
+export type Role = typeof roles.$inferSelect;
+export type Permission = typeof permissions.$inferSelect;
+export type RolePermission = typeof rolePermissions.$inferSelect;

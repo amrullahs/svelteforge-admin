@@ -473,39 +473,3 @@ $effect(() =&gt; &#123;
 	</tbody>
 </table>
 
-<h2>Need More?</h2>
-
-<div
-	class="not-prose border-primary/30 bg-primary/5 my-8 rounded-xl border-2 border-dashed p-6 sm:p-8"
->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-		<div class="flex-1">
-			<h3 class="text-foreground text-lg font-bold sm:text-xl">
-				Real-Time Notifications with DashboardPack
-			</h3>
-			<p class="text-muted-foreground mt-2 text-sm leading-relaxed">
-				Need real-time notifications with WebSocket support, push notifications, and email
-				integration? Our premium templates include live notification streams, configurable delivery
-				channels (in-app, email, push), notification preferences per user, and scheduled
-				notification campaigns.
-			</p>
-			<ul class="text-muted-foreground mt-3 space-y-1 text-sm">
-				<li>WebSocket-powered real-time notification delivery</li>
-				<li>Push notifications via Web Push API with service workers</li>
-				<li>Email notification digests (instant, hourly, daily)</li>
-				<li>Per-user notification preferences and mute controls</li>
-				<li>Notification templates with variable interpolation</li>
-			</ul>
-		</div>
-		<div class="shrink-0">
-			<a
-				href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=docs&utm_campaign=premium"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition-colors"
-			>
-				Go Premium
-			</a>
-		</div>
-	</div>
-</div>

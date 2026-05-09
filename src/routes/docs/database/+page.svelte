@@ -2,7 +2,7 @@
 	<title>Database - SvelteForge Admin Documentation</title>
 	<meta
 		name="description"
-		content="Learn how SvelteForge Admin uses SQLite with Drizzle ORM and better-sqlite3 in WAL mode. Complete schema reference, migrations, seeding, and query patterns for your Svelte 5 and SvelteKit admin dashboard."
+		content="Learn how SvelteForge Admin uses MySQL with Drizzle ORM and the mysql2 driver. Complete schema reference, migrations, seeding, and query patterns for your Svelte 5 and SvelteKit admin dashboard."
 	/>
 </svelte:head>
 
@@ -832,7 +832,7 @@ export default defineConfig(&#123;
 <h2>Drizzle Studio</h2>
 
 <p>
-	Drizzle Studio provides a browser-based GUI for inspecting and editing your SQLite database.
+	Drizzle Studio provides a browser-based GUI for inspecting and editing your MySQL database.
 	Launch it with:
 </p>
 
@@ -951,53 +951,3 @@ const results = await db
   .limit(10);</code
 	></pre>
 
-<h2>Need More?</h2>
-
-<div
-	class="not-prose border-primary/30 bg-primary/5 my-8 rounded-xl border-2 border-dashed p-6 sm:p-8"
->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-		<div class="flex-1">
-			<h3 class="text-foreground text-lg font-bold sm:text-xl">Go Premium with DashboardPack</h3>
-			<p class="text-muted-foreground mt-2 text-sm leading-relaxed">
-				SvelteForge Admin demonstrates a solid SQLite + Drizzle ORM setup for
-				<strong>Svelte 5</strong> and <strong>SvelteKit</strong>. Need more advanced database
-				patterns? DashboardPack premium templates include multi-tenant schemas, advanced CRUD
-				interfaces with pagination/filtering/sorting, data import/export, and production-grade
-				database management UIs.
-			</p>
-			<ul class="text-muted-foreground mt-3 space-y-1 text-sm">
-				<li>
-					<strong>Apex</strong> — Enterprise admin with 5 dashboards, advanced data tables, and full CRUD
-					operations
-				</li>
-				<li>
-					<strong>Zenith</strong> — Analytics dashboard with complex aggregation queries and real-time
-					data
-				</li>
-				<li>
-					<strong>Signal</strong> — Monitoring dashboard with database health metrics and query performance
-					tracking
-				</li>
-			</ul>
-		</div>
-		<div class="flex shrink-0 flex-col gap-2">
-			<a
-				href="https://dashboardpack.com/?utm_source=svelteforge&utm_medium=docs&utm_campaign=premium"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition-colors"
-			>
-				Go Premium
-			</a>
-			<a
-				href="https://dashboardpack.com/theme-details/apex-nextjs/?utm_source=svelteforge&utm_medium=docs&utm_campaign=premium"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="text-primary hover:text-primary/80 text-center text-xs font-medium transition-colors"
-			>
-				Preview Apex
-			</a>
-		</div>
-	</div>
-</div>
