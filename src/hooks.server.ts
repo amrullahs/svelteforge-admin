@@ -37,7 +37,29 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		event.locals.user = user;
 		event.locals.session = session;
-	} catch {
+
+		// --- Route Guard ---
+		if (user && event.url.pathname !== "/") {
+			const protectedPaths = ["users", "content", "analytics", "notifications", "settings", "roles", "database"];
+			const pathParts = event.url.pathname.split("/").filter(Boolean);
+			const resource = pathParts[0];
+
+			if (protectedPaths.includes(resource)) {
+				const { hasPermission } = await import("$lib/server/permissions.js");
+				const allowed = await hasPermission(user.id, `${resource}:view`);
+				
+				if (!allowed) {
+					const { error } = await import("@sveltejs/kit");
+					error(403, {
+						message: "Access Denied: You do not have permission to view this page."
+					});
+				}
+			}
+		}
+		// -------------------
+
+	} catch (e: any) {
+		if (e?.status === 403) throw e; // Pass through our 403 error
 		// DB error or corrupt session — clear the cookie and continue as unauthenticated
 		deleteSessionCookie(event.cookies);
 		event.locals.user = null;

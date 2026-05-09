@@ -31,10 +31,17 @@
 			username: string;
 			role: string;
 		};
+		permissions?: string[];
 		notificationCount?: number;
 	};
 
-	let { user, notificationCount = 0 }: Props = $props();
+	let { user, permissions = [], notificationCount = 0 }: Props = $props();
+
+	function hasAccess(url: string) {
+		if (url === "/" || url === "/docs") return true;
+		const resource = url.split("/")[1];
+		return permissions.includes(`${resource}:view`);
+	}
 
 	function getInitials(name: string) {
 		return name
@@ -57,37 +64,44 @@
 		items: NavItem[];
 	};
 
-	const navigation: NavGroup[] = $derived([
-		{
-			label: "Overview",
-			items: [
-				{ title: "Dashboard", url: "/", icon: LayoutDashboardIcon },
-				{ title: "Analytics", url: "/analytics", icon: BarChart3Icon },
-			],
-		},
-		{
-			label: "Management",
-			items: [
-				{ title: "Users", url: "/users", icon: UsersIcon },
-				{ title: "Content", url: "/content", icon: FileTextIcon },
-				{ title: "Roles", url: "/roles", icon: ShieldIcon },
-			],
-		},
-		{
-			label: "System",
-			items: [
-				{
-					title: "Notifications",
-					url: "/notifications",
-					icon: BellIcon,
-					badge: notificationCount > 0 ? String(notificationCount) : undefined,
-				},
-				{ title: "Database", url: "/database", icon: DatabaseIcon },
-				{ title: "Settings", url: "/settings", icon: SettingsIcon },
-				{ title: "Documentation", url: "/docs", icon: BookOpenIcon },
-			],
-		},
-	]);
+	const navigation: NavGroup[] = $derived.by(() => {
+		const rawNavigation: NavGroup[] = [
+			{
+				label: "Overview",
+				items: [
+					{ title: "Dashboard", url: "/", icon: LayoutDashboardIcon },
+					{ title: "Analytics", url: "/analytics", icon: BarChart3Icon },
+				],
+			},
+			{
+				label: "Management",
+				items: [
+					{ title: "Users", url: "/users", icon: UsersIcon },
+					{ title: "Content", url: "/content", icon: FileTextIcon },
+					{ title: "Roles", url: "/roles", icon: ShieldIcon },
+				],
+			},
+			{
+				label: "System",
+				items: [
+					{
+						title: "Notifications",
+						url: "/notifications",
+						icon: BellIcon,
+						badge: notificationCount > 0 ? String(notificationCount) : undefined,
+					},
+					{ title: "Database", url: "/database", icon: DatabaseIcon },
+					{ title: "Settings", url: "/settings", icon: SettingsIcon },
+					{ title: "Documentation", url: "/docs", icon: BookOpenIcon },
+				],
+			},
+		];
+
+		return rawNavigation.map(group => ({
+			...group,
+			items: group.items.filter(item => hasAccess(item.url))
+		})).filter(group => group.items.length > 0);
+	});
 </script>
 
 <Sidebar.Root>

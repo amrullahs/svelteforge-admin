@@ -8,13 +8,33 @@
 	import InfoIcon from "@lucide/svelte/icons/info";
 	import SearchIcon from "@lucide/svelte/icons/search";
 
+	import { toast } from "svelte-sonner";
+
 	let { data, form } = $props();
 
 	let selectedRoleId = $state("");
 	let searchQuery = $state("");
 	let isCreating = $state(false);
+	let isSaving = $state(false);
+
+	// Permissions currently being edited for the selected role
+	let editingPermissions = $state<string[]>([]);
 
 	const selectedRole = $derived(data.roles.find((r) => r.id === selectedRoleId));
+	
+	// Reactively update editingPermissions when role selection or server data changes
+	$effect(() => {
+		// We track data.roles to re-sync after save
+		const role = data.roles.find(r => r.id === selectedRoleId);
+		if (role && !isSaving) {
+			editingPermissions = [...role.permissions];
+		}
+	});
+
+	function selectRole(id: string) {
+		selectedRoleId = id;
+	}
+
 	const filteredPermissions = $derived(
 		data.permissions.filter((p) => 
 			p.key.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -22,7 +42,6 @@
 		)
 	);
 
-	// Group permissions by resource
 	const groupedPermissions = $derived(
 		filteredPermissions.reduce((acc, p) => {
 			const resource = p.key.split(":")[0];
@@ -31,6 +50,14 @@
 			return acc;
 		}, {} as Record<string, typeof data.permissions>)
 	);
+
+	function togglePermission(id: string) {
+		if (editingPermissions.includes(id)) {
+			editingPermissions = editingPermissions.filter(p => p !== id);
+		} else {
+			editingPermissions = [...editingPermissions, id];
+		}
+	}
 
 </script>
 
@@ -75,7 +102,7 @@
 					<div class="flex flex-col">
 						{#each data.roles as role}
 							<button 
-								onclick={() => selectedRoleId = role.id}
+								onclick={() => selectRole(role.id)}
 								class="flex flex-col gap-1 border-b p-4 text-left transition-colors hover:bg-muted/50 {selectedRoleId === role.id ? 'bg-muted' : ''} last:border-0"
 							>
 								<div class="flex items-center justify-between">
@@ -95,8 +122,11 @@
 				<div class="rounded-xl border bg-card p-6 shadow-sm">
 					<h3 class="mb-4 font-semibold">Create New Role</h3>
 					<form action="?/createRole" method="POST" use:enhance={() => {
-						return async ({ result }) => {
-							if (result.type === 'success') isCreating = false;
+						return async ({ result, update }) => {
+							if (result.type === 'success') {
+								isCreating = false;
+								await update();
+							}
 						};
 					}} class="space-y-4">
 						<div class="space-y-2">
@@ -161,7 +191,23 @@
 								</p>
 							</div>
 						{:else}
-							<form action="?/updatePermissions" method="POST" use:enhance class="space-y-8">
+							<form 
+								action="?/updatePermissions" 
+								method="POST" 
+								use:enhance={() => {
+									isSaving = true;
+									return async ({ result, update }) => {
+										await update({ reset: false }); // Prevent form reset
+										isSaving = false;
+										if (result.type === 'success') {
+											toast.success("Permissions updated successfully");
+										} else {
+											toast.error("Failed to update permissions");
+										}
+									};
+								}} 
+								class="space-y-8"
+							>
 								<input type="hidden" name="roleId" value={selectedRole.id} />
 								
 								<div class="grid gap-8 md:grid-cols-2">
@@ -170,12 +216,12 @@
 											<h4 class="text-xs font-bold tracking-wider text-muted-foreground uppercase">{resource}</h4>
 											<div class="grid gap-2">
 												{#each perms as permission}
-													<label class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+													<label class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 {editingPermissions.includes(permission.id) ? 'border-primary/50 bg-primary/5' : ''}">
 														<input 
 															type="checkbox" 
 															name="permissions" 
 															value={permission.id}
-															checked={selectedRole.permissions.includes(permission.id)}
+															bind:group={editingPermissions}
 															class="size-4 rounded border-gray-300 text-primary focus:ring-primary"
 														/>
 														<div class="flex flex-col">
@@ -190,9 +236,18 @@
 								</div>
 
 								<div class="sticky bottom-0 bg-card/80 border-t pt-4 backdrop-blur-sm">
-									<button type="submit" class="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 text-sm font-semibold shadow-md transition-all">
-										<CheckIcon class="size-4" />
-										Save Changes
+									<button 
+										type="submit" 
+										disabled={isSaving}
+										class="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 text-sm font-semibold shadow-md transition-all disabled:opacity-50"
+									>
+										{#if isSaving}
+											<div class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+											Saving...
+										{:else}
+											<CheckIcon class="size-4" />
+											Save Changes
+										{/if}
 									</button>
 								</div>
 							</form>

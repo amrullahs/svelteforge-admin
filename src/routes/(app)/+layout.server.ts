@@ -1,6 +1,6 @@
 import { redirect, error } from "@sveltejs/kit";
 import { db } from "$lib/server/db/index.js";
-import { notifications, appSettings } from "$lib/server/db/schema.js";
+import { notifications, appSettings, roles, permissions, rolePermissions } from "$lib/server/db/schema.js";
 import { eq, and, or, isNull, sql, desc } from "drizzle-orm";
 import type { LayoutServerLoad } from "./$types.js";
 
@@ -40,8 +40,25 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		.orderBy(desc(notifications.createdAt))
 		.limit(5);
 
+	// Get user permissions
+	let userPermissions: string[] = [];
+	if (locals.user.role === "admin") {
+		// Admin gets all virtual permissions for UI
+		const allPerms = await db.select({ key: permissions.key }).from(permissions);
+		userPermissions = allPerms.map(p => p.key);
+	} else {
+		const perms = await db
+			.select({ key: permissions.key })
+			.from(rolePermissions)
+			.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+			.innerJoin(roles, eq(rolePermissions.roleId, roles.id))
+			.where(eq(roles.id, locals.user.role));
+		userPermissions = perms.map(p => p.key);
+	}
+
 	return {
 		user: locals.user,
+		permissions: userPermissions,
 		unreadNotificationCount: countResult?.count ?? 0,
 		recentNotifications,
 	};
