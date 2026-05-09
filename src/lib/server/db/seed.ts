@@ -24,11 +24,11 @@ function randomInt(min: number, max: number): number {
 
 async function seed() {
 	console.log("Clearing existing data...");
-	db.delete(notifications).run();
-	db.delete(pages).run();
-	db.delete(sessions).run();
-	db.delete(appSettings).run();
-	db.delete(users).run();
+	await db.delete(notifications);
+	await db.delete(pages);
+	await db.delete(sessions);
+	await db.delete(appSettings);
+	await db.delete(users);
 
 	// --- USERS ---
 	// ~50 users with accelerating signups over 12 months (realistic growth curve)

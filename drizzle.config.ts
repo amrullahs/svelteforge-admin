@@ -3,8 +3,8 @@ import { defineConfig } from "drizzle-kit";
 export default defineConfig({
 	schema: "./src/lib/server/db/schema.ts",
 	out: "./drizzle",
-	dialect: "sqlite",
+	dialect: "mysql",
 	dbCredentials: {
-		url: "svelteforge.db",
+		url: process.env.DATABASE_URL || "mysql://root:password@localhost:3306/svelteforge",
 	},
 });

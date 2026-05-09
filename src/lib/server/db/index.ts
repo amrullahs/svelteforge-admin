@@ -1,9 +1,8 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createPool } from "mysql2/promise";
+import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "./schema.js";
 
-const dbPath = process.env.DATABASE_URL || "svelteforge.db";
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
+const connectionString = process.env.DATABASE_URL || "mysql://root:password@localhost:3306/svelteforge";
+const pool = createPool(connectionString);
 
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(pool, { schema, mode: "default" });

@@ -1,100 +1,100 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { mysqlTable, varchar, text, timestamp, boolean, mysqlEnum, uniqueIndex, int, bigint } from "drizzle-orm/mysql-core";
 
-export const users = sqliteTable("users", {
-	id: text("id").primaryKey(),
-	email: text("email").notNull().unique(),
-	username: text("username").notNull().unique(),
+export const users = mysqlTable("users", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	email: varchar("email", { length: 255 }).notNull().unique(),
+	username: varchar("username", { length: 255 }).notNull().unique(),
 	passwordHash: text("password_hash").notNull(),
-	name: text("name").notNull(),
+	name: varchar("name", { length: 255 }).notNull(),
 	avatarUrl: text("avatar_url"),
-	role: text("role", { enum: ["admin", "editor", "viewer"] })
+	role: mysqlEnum("role", ["admin", "editor", "viewer"])
 		.notNull()
 		.default("viewer"),
-	createdAt: integer("created_at", { mode: "timestamp" })
+	createdAt: timestamp("created_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
-	updatedAt: integer("updated_at", { mode: "timestamp" })
+	updatedAt: timestamp("updated_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
 
-export const sessions = sqliteTable("sessions", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
+export const sessions = mysqlTable("sessions", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	userId: varchar("user_id", { length: 255 })
 		.notNull()
 		.references(() => users.id),
-	expiresAt: integer("expires_at").notNull(),
+	expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 	userAgent: text("user_agent"),
-	ipAddress: text("ip_address"),
-	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+	ipAddress: varchar("ip_address", { length: 45 }),
+	createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
 
-export const pages = sqliteTable("pages", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	slug: text("slug").notNull().unique(),
-	content: text("content").notNull().default(""),
-	template: text("template", { enum: ["default", "landing", "blog"] })
+export const pages = mysqlTable("pages", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	title: varchar("title", { length: 255 }).notNull(),
+	slug: varchar("slug", { length: 255 }).notNull().unique(),
+	content: text("content").notNull(),
+	template: mysqlEnum("template", ["default", "landing", "blog"])
 		.notNull()
 		.default("default"),
-	status: text("status", { enum: ["draft", "published", "archived"] })
+	status: mysqlEnum("status", ["draft", "published", "archived"])
 		.notNull()
 		.default("draft"),
-	authorId: text("author_id")
+	authorId: varchar("author_id", { length: 255 })
 		.notNull()
 		.references(() => users.id),
-	createdAt: integer("created_at", { mode: "timestamp" })
+	createdAt: timestamp("created_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
-	updatedAt: integer("updated_at", { mode: "timestamp" })
+	updatedAt: timestamp("updated_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
-	publishedAt: integer("published_at", { mode: "timestamp" }),
+	publishedAt: timestamp("published_at"),
 });
 
-export const notifications = sqliteTable("notifications", {
-	id: text("id").primaryKey(),
-	userId: text("user_id").references(() => users.id),
-	title: text("title").notNull(),
+export const notifications = mysqlTable("notifications", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	userId: varchar("user_id", { length: 255 }).references(() => users.id),
+	title: varchar("title", { length: 255 }).notNull(),
 	message: text("message").notNull(),
-	type: text("type", { enum: ["info", "warning", "error", "success"] })
+	type: mysqlEnum("type", ["info", "warning", "error", "success"])
 		.notNull()
 		.default("info"),
-	read: integer("read", { mode: "boolean" }).notNull().default(false),
-	createdAt: integer("created_at", { mode: "timestamp" })
+	read: boolean("read").notNull().default(false),
+	createdAt: timestamp("created_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
 
-export const passwordResetTokens = sqliteTable("password_reset_tokens", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+	id: varchar("id", { length: 255 }).primaryKey(),
+	userId: varchar("user_id", { length: 255 })
 		.notNull()
 		.references(() => users.id),
 	tokenHash: text("token_hash").notNull(),
-	expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+	expiresAt: timestamp("expires_at").notNull(),
 });
 
-export const oauthAccounts = sqliteTable(
+export const oauthAccounts = mysqlTable(
 	"oauth_accounts",
 	{
-		id: text("id").primaryKey(),
-		userId: text("user_id")
+		id: varchar("id", { length: 255 }).primaryKey(),
+		userId: varchar("user_id", { length: 255 })
 			.notNull()
 			.references(() => users.id),
-		provider: text("provider", { enum: ["google", "github"] }).notNull(),
-		providerUserId: text("provider_user_id").notNull(),
-		createdAt: integer("created_at", { mode: "timestamp" })
+		provider: mysqlEnum("provider", ["google", "github"]).notNull(),
+		providerUserId: varchar("provider_user_id", { length: 255 }).notNull(),
+		createdAt: timestamp("created_at")
 			.notNull()
 			.$defaultFn(() => new Date()),
 	},
 	(table) => [uniqueIndex("oauth_provider_user_idx").on(table.provider, table.providerUserId)]
 );
 
-export const appSettings = sqliteTable("app_settings", {
-	key: text("key").primaryKey(),
+export const appSettings = mysqlTable("app_settings", {
+	key: varchar("key", { length: 255 }).primaryKey(),
 	value: text("value").notNull(),
-	updatedAt: integer("updated_at", { mode: "timestamp" })
+	updatedAt: timestamp("updated_at")
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
