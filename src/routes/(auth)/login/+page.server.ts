@@ -4,7 +4,7 @@ import { db } from "$lib/server/db/index.js";
 import { users } from "$lib/server/db/schema.js";
 import { fail, redirect } from "@sveltejs/kit";
 import { verify } from "@node-rs/argon2";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import type { Actions, PageServerLoad } from "./$types.js";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -28,7 +28,7 @@ export const actions: Actions = {
 		}
 
 		const existingUser = await db.query.users.findFirst({
-			where: eq(users.username, username.toLowerCase()),
+			where: or(eq(users.username, username.toLowerCase()), eq(users.email, username.toLowerCase())),
 		});
 
 		if (!existingUser) {

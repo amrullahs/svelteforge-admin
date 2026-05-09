@@ -318,7 +318,7 @@ export default defineConfig(&#123;
 
 <p>
 	All chart data is aggregated on the server in <code>+page.server.ts</code> using Drizzle ORM queries
-	against the SQLite database. This ensures charts render with data on first paint — no loading spinners,
+	against the MySQL database. This ensures charts render with data on first paint — no loading spinners,
 	no client-side fetch waterfalls.
 </p>
 
@@ -332,12 +332,12 @@ export const load: PageServerLoad = async () =&gt; &#123;
   // User signups per month
   const signupsPerMonth = await db
     .select(&#123;
-      month: sql&lt;string&gt;`strftime('%Y-%m-01', created_at, 'unixepoch')`,
+      month: sql&lt;string&gt;`DATE_FORMAT(created_at, '%Y-%m-01')`,
       count: sql&lt;number&gt;`count(*)`,
     &#125;)
     .from(users)
-    .groupBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`)
-    .orderBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`);
+    .groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`)
+    .orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
   // Pages by status (for pie/donut chart)
   const pagesByStatus = await db

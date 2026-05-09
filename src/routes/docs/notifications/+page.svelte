@@ -72,16 +72,16 @@
 </p>
 
 <pre><code class="language-typescript"
-		>export const notifications = sqliteTable("notifications", &#123;
-  id: text("id").primaryKey(),
-  userId: text("user_id").references(() =&gt; users.id),
-  title: text("title").notNull(),
+		>export const notifications = mysqlTable("notifications", &#123;
+  id: varchar("id", &#123; length: 255 &#125;).primaryKey(),
+  userId: varchar("user_id", &#123; length: 255 &#125;).references(() =&gt; users.id),
+  title: varchar("title", &#123; length: 255 &#125;).notNull(),
   message: text("message").notNull(),
-  type: text("type", &#123;
-    enum: ["info", "warning", "error", "success"]
-  &#125;).notNull().default("info"),
-  read: integer("read", &#123; mode: "boolean" &#125;).notNull().default(false),
-  createdAt: integer("created_at", &#123; mode: "timestamp" &#125;)
+  type: mysqlEnum("type", ["info", "warning", "error", "success"])
+    .notNull()
+    .default("info"),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at")
     .notNull()
     .$defaultFn(() =&gt; new Date()),
 &#125;);</code

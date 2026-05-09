@@ -7,22 +7,22 @@ export const load: PageServerLoad = async () => {
 	// User signups per month
 	const signupsPerMonth = await db
 		.select({
-			month: sql<string>`strftime('%Y-%m-01', created_at, 'unixepoch')`,
+			month: sql<string>`DATE_FORMAT(created_at, '%Y-%m-01')`,
 			count: sql<number>`count(*)`,
 		})
 		.from(users)
-		.groupBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`)
-		.orderBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`);
+		.groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`)
+		.orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
 	// Content creation per month
 	const pagesPerMonth = await db
 		.select({
-			month: sql<string>`strftime('%Y-%m-01', created_at, 'unixepoch')`,
+			month: sql<string>`DATE_FORMAT(created_at, '%Y-%m-01')`,
 			count: sql<number>`count(*)`,
 		})
 		.from(pages)
-		.groupBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`)
-		.orderBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`);
+		.groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`)
+		.orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
 	// Pages by status
 	const pagesByStatus = await db

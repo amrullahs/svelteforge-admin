@@ -9,30 +9,27 @@
 <h1>Database</h1>
 
 <p>
-	SvelteForge Admin uses <strong>SQLite</strong> as its database, accessed through
-	<strong>Drizzle ORM</strong> with the <strong>better-sqlite3</strong> driver. This gives your
-	<strong>Svelte 5</strong> and <strong>SvelteKit</strong> application a zero-configuration, high-performance
-	database that lives as a single file in your project root.
+	SvelteForge Admin uses <strong>MySQL</strong> as its database, accessed through
+	<strong>Drizzle ORM</strong> with the <strong>mysql2</strong> driver. This gives your
+	<strong>Svelte 5</strong> and <strong>SvelteKit</strong> application a robust, production-ready
+	database that scales with your needs.
 </p>
 
-<h2>Why SQLite</h2>
+<h2>Why MySQL</h2>
 
 <p>
-	SQLite is the ideal database for <strong>SvelteKit</strong> admin dashboards and internal tools:
+	MySQL is the industry-standard database for <strong>SvelteKit</strong> admin dashboards and enterprise tools:
 </p>
 
 <ul>
 	<li>
-		<strong>Zero configuration</strong> — No database server to install, configure, or maintain.
-		Just a single file (<code>svelteforge.db</code>) in your project root.
+		<strong>Production Ready</strong> — Proven reliability for high-traffic applications and complex data relationships.
 	</li>
 	<li>
-		<strong>Lightning fast</strong> — Reads are faster than PostgreSQL or MySQL for typical admin workloads.
-		With WAL mode enabled, concurrent reads never block each other.
+		<strong>Scalable</strong> — Handles large datasets and concurrent users with ease, far beyond the limits of file-based databases.
 	</li>
 	<li>
-		<strong>Perfect for deployment</strong> — Deploy your <strong>SvelteKit</strong> app with its database
-		as a single unit. No connection strings to manage, no cold start latency.
+		<strong>Standard Ecosystem</strong> — Compatible with almost every hosting provider, cloud service, and analytics tool.
 	</li>
 	<li>
 		<strong>Type-safe with Drizzle</strong> — Drizzle ORM provides full TypeScript inference from
@@ -52,29 +49,25 @@
 
 <pre><code class="language-typescript"
 		>// src/lib/server/db/index.ts
-import Database from "better-sqlite3";
-import &#123; drizzle &#125; from "drizzle-orm/better-sqlite3";
+import &#123; createPool &#125; from "mysql2/promise";
+import &#123; drizzle &#125; from "drizzle-orm/mysql2";
 import * as schema from "./schema.js";
+import &#123; env &#125; from "$env/dynamic/private";
 
-const dbPath = process.env.DATABASE_URL || "svelteforge.db";
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
+const connectionString = env.DATABASE_URL || "mysql://root:password@localhost:3306/svelteforge";
+const pool = createPool(connectionString);
 
-export const db = drizzle(sqlite, &#123; schema &#125;);</code
+export const db = drizzle(pool, &#123; schema, mode: "default" &#125;);</code
 	></pre>
 
 <p>Key details:</p>
 
 <ul>
 	<li>
-		<strong>WAL journal mode</strong> — Write-Ahead Logging allows concurrent reads while a write is
-		in progress. This is critical for <strong>SvelteKit</strong> apps where multiple server-side load
-		functions may query simultaneously.
+		<strong>Connection Pooling</strong> — Managed by <code>mysql2/promise</code> for efficient handling of multiple simultaneous requests.
 	</li>
 	<li>
-		<strong><code>DATABASE_URL</code> env var</strong> — Defaults to
-		<code>svelteforge.db</code> in the project root. Override it in production to point to a persistent
-		volume.
+		<strong>Environment Variables</strong> — Connection strings are managed via <code>DATABASE_URL</code> in your <code>.env</code> file.
 	</li>
 	<li>
 		<strong>Full schema import</strong> — Passing the entire schema to <code>drizzle()</code>
@@ -86,7 +79,7 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 
 <p>
 	The complete database schema is defined in <code>src/lib/server/db/schema.ts</code> using Drizzle
-	ORM's SQLite table builder. Every table, column, type, constraint, and default is defined in
+	ORM's MySQL table builder. Every table, column, type, constraint, and default is defined in
 	TypeScript — giving your <strong>Svelte 5</strong> components and
 	<strong>SvelteKit</strong> server routes full type inference.
 </p>
@@ -99,20 +92,20 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 </p>
 
 <pre><code class="language-typescript"
-		>export const users = sqliteTable("users", &#123;
-  id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  username: text("username").notNull().unique(),
+		>export const users = mysqlTable("users", &#123;
+  id: varchar("id", &#123; length: 255 &#125;).primaryKey(),
+  email: varchar("email", &#123; length: 255 &#125;).notNull().unique(),
+  username: varchar("username", &#123; length: 255 &#125;).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  name: text("name").notNull(),
+  name: varchar("name", &#123; length: 255 &#125;).notNull(),
   avatarUrl: text("avatar_url"),
-  role: text("role", &#123; enum: ["admin", "editor", "viewer"] &#125;)
+  role: mysqlEnum("role", ["admin", "editor", "viewer"])
     .notNull()
     .default("viewer"),
-  createdAt: integer("created_at", &#123; mode: "timestamp" &#125;)
+  createdAt: timestamp("created_at")
     .notNull()
     .$defaultFn(() =&gt; new Date()),
-  updatedAt: integer("updated_at", &#123; mode: "timestamp" &#125;)
+  updatedAt: timestamp("updated_at")
     .notNull()
     .$defaultFn(() =&gt; new Date()),
 &#125;);</code
@@ -130,19 +123,19 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 	<tbody>
 		<tr>
 			<td><code>id</code></td>
-			<td>text</td>
+			<td>varchar</td>
 			<td>PRIMARY KEY</td>
 			<td>Cryptographic random ID via <code>generateId()</code></td>
 		</tr>
 		<tr>
 			<td><code>email</code></td>
-			<td>text</td>
+			<td>varchar</td>
 			<td>NOT NULL, UNIQUE</td>
 			<td>Stored lowercase</td>
 		</tr>
 		<tr>
 			<td><code>username</code></td>
-			<td>text</td>
+			<td>varchar</td>
 			<td>NOT NULL, UNIQUE</td>
 			<td>3-31 chars, lowercase alphanumeric + hyphens/underscores</td>
 		</tr>
@@ -154,7 +147,7 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 		</tr>
 		<tr>
 			<td><code>name</code></td>
-			<td>text</td>
+			<td>varchar</td>
 			<td>NOT NULL</td>
 			<td>Display name</td>
 		</tr>
@@ -166,19 +159,19 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 		</tr>
 		<tr>
 			<td><code>role</code></td>
-			<td>text enum</td>
+			<td>enum</td>
 			<td>NOT NULL, default "viewer"</td>
 			<td>One of: admin, editor, viewer</td>
 		</tr>
 		<tr>
 			<td><code>createdAt</code></td>
-			<td>integer (timestamp)</td>
+			<td>timestamp</td>
 			<td>NOT NULL</td>
 			<td>Auto-set on insert, returns Date object</td>
 		</tr>
 		<tr>
 			<td><code>updatedAt</code></td>
-			<td>integer (timestamp)</td>
+			<td>timestamp</td>
 			<td>NOT NULL</td>
 			<td>Auto-set on insert, returns Date object</td>
 		</tr>
@@ -194,16 +187,15 @@ export const db = drizzle(sqlite, &#123; schema &#125;);</code
 </p>
 
 <pre><code class="language-typescript"
-		>export const sessions = sqliteTable("sessions", &#123;
-  id: text("id").primaryKey(),
-  userId: text("user_id")
+		>export const sessions = mysqlTable("sessions", &#123;
+  id: varchar("id", &#123; length: 255 &#125;).primaryKey(),
+  userId: varchar("user_id", &#123; length: 255 &#125;)
     .notNull()
     .references(() =&gt; users.id),
-  expiresAt: integer("expires_at").notNull(),
+  expiresAt: bigint("expires_at", &#123; mode: "number" &#125;).notNull(),
   userAgent: text("user_agent"),
-  ipAddress: text("ip_address"),
-  createdAt: integer("created_at", &#123; mode: "timestamp" &#125;)
-    .$defaultFn(() =&gt; new Date()),
+  ipAddress: varchar("ip_address", &#123; length: 45 &#125;),
+  createdAt: timestamp("created_at").$defaultFn(() =&gt; new Date()),
 &#125;);</code
 	></pre>
 
@@ -704,9 +696,9 @@ import &#123; defineConfig &#125; from "drizzle-kit";
 export default defineConfig(&#123;
   schema: "./src/lib/server/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "mysql",
   dbCredentials: &#123;
-    url: "svelteforge.db",
+    url: process.env.DATABASE_URL || "mysql://root:password@localhost:3306/svelteforge",
   &#125;,
 &#125;);</code
 	></pre>

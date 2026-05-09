@@ -193,8 +193,8 @@
 			<td>Accessible, composable UI components</td>
 		</tr>
 		<tr>
-			<td><strong>Drizzle ORM + SQLite</strong></td>
-			<td>Type-safe database access with better-sqlite3 in WAL mode</td>
+			<td><strong>Drizzle ORM + MySQL</strong></td>
+			<td>Type-safe database access with the mysql2 driver</td>
 		</tr>
 		<tr>
 			<td><strong>Custom Auth (@oslojs/crypto + Argon2)</strong></td>

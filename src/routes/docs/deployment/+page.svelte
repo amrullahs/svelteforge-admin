@@ -10,9 +10,9 @@
 
 <p>
 	SvelteForge Admin is a <strong>Svelte 5</strong> and <strong>SvelteKit</strong> application that
-	uses <code>@sveltejs/adapter-node</code> for Node.js deployment. Because the database is
-	<strong>SQLite</strong> (via better-sqlite3), your hosting environment must provide a persistent filesystem
-	and a full Node.js runtime.
+	uses <code>@sveltejs/adapter-node</code> for Node.js deployment. It uses <strong>MySQL</strong>
+	as its database (via the mysql2 driver), which requires a MySQL server instance and a
+	standard Node.js runtime.
 </p>
 
 <h2>Requirements</h2>
@@ -35,18 +35,12 @@
 			<td>LTS recommended. The production server runs as a standard Node.js process.</td>
 		</tr>
 		<tr>
-			<td><strong>Native module compilation</strong></td>
-			<td
-				>better-sqlite3 is a C++ addon that compiles during <code>pnpm install</code>. The build
-				environment needs <code>python3</code>, <code>make</code>, and a C++ compiler.</td
-			>
+			<td><strong>MySQL 8.0+</strong></td>
+			<td>A running MySQL server instance. Can be self-hosted, a Docker container, or a managed service like AWS RDS or DigitalOcean Managed Databases.</td>
 		</tr>
 		<tr>
-			<td><strong>Persistent filesystem</strong></td>
-			<td
-				>SQLite stores data in a single file on disk. The filesystem must survive restarts, deploys,
-				and container recreations.</td
-			>
+			<td><strong>Environment Variables</strong></td>
+			<td>Properly configured <code>DATABASE_URL</code> and <code>ORIGIN</code> variables in your production environment.</td>
 		</tr>
 	</tbody>
 </table>
@@ -137,11 +131,9 @@ export default &#123;
 		<tr>
 			<td><code>DATABASE_URL</code></td>
 			<td>Yes</td>
-			<td><code>svelteforge.db</code></td>
+			<td>—</td>
 			<td
-				>Path to the SQLite database file. In Docker, point to a mounted volume (e.g., <code
-					>/app/data/svelteforge.db</code
-				>).</td
+				>MySQL connection string (e.g., <code>mysql://user:password@host:3306/dbname</code>).</td
 			>
 		</tr>
 		<tr>
@@ -212,7 +204,7 @@ export default &#123;
 
 <p>
 	Docker is the recommended way to deploy SvelteForge Admin. The multi-stage build keeps the final
-	image small while properly compiling the better-sqlite3 native module.
+	image small and clean.
 </p>
 
 <h3>Dockerfile</h3>
@@ -220,7 +212,6 @@ export default &#123;
 <pre><code class="language-dockerfile"
 		># Stage 1: Install dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
 RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml ./
@@ -236,7 +227,6 @@ RUN pnpm build
 
 # Stage 3: Production image
 FROM node:20-alpine AS runner
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
 RUN corepack enable pnpm
 
@@ -246,13 +236,9 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/drizzle ./drizzle
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
-
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
-ENV DATABASE_URL=/app/data/svelteforge.db
 
 EXPOSE 3000
 
@@ -268,16 +254,28 @@ services:
     build: .
     ports:
       - "3000:3000"
-    volumes:
-      - ./data:/app/data
+    depends_on:
+      - db
     environment:
-      - DATABASE_URL=/app/data/svelteforge.db
+      - DATABASE_URL=mysql://root:password@db:3306/svelteforge
       - ORIGIN=https://admin.example.com
       - GOOGLE_CLIENT_ID=$&#123;GOOGLE_CLIENT_ID&#125;
       - GOOGLE_CLIENT_SECRET=$&#123;GOOGLE_CLIENT_SECRET&#125;
       - GITHUB_CLIENT_ID=$&#123;GITHUB_CLIENT_ID&#125;
       - GITHUB_CLIENT_SECRET=$&#123;GITHUB_CLIENT_SECRET&#125;
-    restart: unless-stopped</code
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=svelteforge
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:</code
 	></pre>
 
 <h3>Build and Run</h3>
@@ -291,16 +289,16 @@ docker run -p 3000:3000 -v ./data:/app/data svelteforge-admin</code
 	></pre>
 
 <p>
-	<strong>Important:</strong> The <code>-v ./data:/app/data</code> volume mount is critical. Without it,
-	your SQLite database lives inside the container's ephemeral filesystem and will be lost when the container
-	is recreated or updated.
+	<strong>Important:</strong> Ensure your <code>DATABASE_URL</code> environment variable points
+	to your production MySQL instance. In a local Docker Compose setup, the host is usually the
+	name of the database service (e.g., <code>db</code>).
 </p>
 
 <h2>Recommended Hosting Providers</h2>
 
 <p>
-	These providers support Node.js applications with persistent filesystems — exactly what a
-	<strong>SvelteKit</strong> + SQLite application needs:
+	These providers support Node.js applications and offer managed MySQL databases — exactly what a
+	<strong>SvelteKit</strong> + MySQL application needs:
 </p>
 
 <h3>Railway</h3>
@@ -312,7 +310,7 @@ docker run -p 3000:3000 -v ./data:/app/data svelteforge-admin</code
 
 <ul>
 	<li>One-click deploy from GitHub repository</li>
-	<li>Persistent volumes for SQLite (add via dashboard)</li>
+	<li>Managed MySQL databases (add via dashboard)</li>
 	<li>Free tier with $5/month of usage included</li>
 	<li>Set environment variables in the dashboard or via CLI</li>
 	<li>Automatic HTTPS with custom domains</li>
@@ -321,7 +319,6 @@ docker run -p 3000:3000 -v ./data:/app/data svelteforge-admin</code
 <pre><code class="language-bash"
 		># Railway CLI deployment
 railway init
-railway volume add --mount /app/data
 railway up</code
 	></pre>
 
@@ -334,7 +331,7 @@ railway up</code
 
 <ul>
 	<li>Deploy via Dockerfile (uses the Dockerfile above)</li>
-	<li>Persistent volumes with <code>fly volumes create</code></li>
+	<li>Managed MySQL/PostgreSQL via Fly Postgres or external services</li>
 	<li>Free tier includes 3 shared VMs</li>
 	<li>Global distribution with automatic TLS</li>
 </ul>
@@ -355,7 +352,7 @@ fly deploy</code
 
 <ul>
 	<li>Connect your GitHub repository for automatic deploys</li>
-	<li>Persistent disks available on paid plans</li>
+	<li>Managed MySQL/PostgreSQL databases available</li>
 	<li>Free tier for web services (with sleep after inactivity)</li>
 	<li>Built-in environment variable management</li>
 </ul>
@@ -369,9 +366,9 @@ fly deploy</code
 
 <ul>
 	<li>Starting from ~$4/month (Hetzner) or ~$6/month (DigitalOcean, Linode)</li>
-	<li>Full root access — install Node.js, configure nginx, set up SSL</li>
+	<li>Full root access — install Node.js, MySQL, configure nginx</li>
 	<li>Use PM2 or systemd to keep the Node.js process running</li>
-	<li>SQLite persistence is automatic (it is just a file on the server)</li>
+	<li>MySQL persistence is managed by the database server</li>
 </ul>
 
 <pre><code class="language-bash"
@@ -399,38 +396,17 @@ pm2 startup</code
 	<tbody>
 		<tr>
 			<td><strong>Cloudflare Pages / Workers</strong></td>
-			<td>V8 isolates cannot load native C++ Node.js modules. No filesystem access.</td>
+			<td>V8 isolates cannot load certain Node.js modules used by <code>mysql2</code>. No native TCP support in standard workers (requires adapter).</td>
 		</tr>
 		<tr>
 			<td><strong>Vercel Edge Functions</strong></td>
-			<td>Same V8 isolate limitation. Edge runtime does not support native addons.</td>
-		</tr>
-		<tr>
-			<td><strong>Vercel Serverless Functions</strong></td>
-			<td
-				>No persistent filesystem. SQLite database would be lost between invocations. Cold starts
-				add latency.</td
-			>
-		</tr>
-		<tr>
-			<td><strong>AWS Lambda</strong></td>
-			<td
-				>Ephemeral filesystem (<code>/tmp</code> only, wiped between invocations). No persistent storage
-				for SQLite.</td
-			>
-		</tr>
-		<tr>
-			<td><strong>Netlify Functions</strong></td>
-			<td>Same serverless limitations — no persistent filesystem, cold start overhead.</td>
+			<td>Same V8 isolate limitation. Edge runtime does not support standard TCP connections easily.</td>
 		</tr>
 	</tbody>
 </table>
 
 <p>
-	<strong>The core issue:</strong> better-sqlite3 is a synchronous, native C++ addon that compiles
-	against the Node.js N-API. It requires <code>dlopen()</code> to load the shared library at runtime —
-	something V8 isolates and edge runtimes simply do not support. Additionally, SQLite needs a persistent
-	filesystem to store its database file, WAL journal, and shared-memory file.
+	<strong>Note:</strong> Unlike SQLite, MySQL is fully compatible with Vercel Serverless Functions, AWS Lambda, and Netlify, as long as the database is hosted on a persistent server (e.g., AWS RDS).
 </p>
 
 <h2>Production OAuth Setup</h2>
@@ -491,35 +467,25 @@ pm2 startup</code
 </ul>
 
 <p>
-	<strong>For a consistent backup, copy all three files together</strong>, or use SQLite's
-	<code>.backup</code> command which creates a clean, self-contained copy:
+	Because SvelteForge Admin uses MySQL for production, you should use standard database dump tools to ensure data consistency.
 </p>
 
 <pre><code class="language-bash"
-		># Method 1: SQLite backup command (recommended — creates a clean copy)
-sqlite3 svelteforge.db ".backup /backups/svelteforge-$(date +%Y%m%d).db"
+		># Standard MySQL backup
+mysqldump -u user -p svelteforge > backup-$(date +%Y%m%d).sql
 
-# Method 2: Copy all WAL files together
-cp svelteforge.db svelteforge.db-wal svelteforge.db-shm /backups/</code
+# Using Docker
+docker exec db mysqldump -u root -ppassword svelteforge > backup.sql</code
 	></pre>
 
 <h3>Automated Backup Strategies</h3>
 
 <ul>
 	<li>
-		<strong>Cron job</strong> — Schedule a daily backup with <code>crontab -e</code>:
-		<pre><code class="language-bash"
-				># Daily backup at 3 AM
-0 3 * * * sqlite3 /app/data/svelteforge.db ".backup /backups/svelteforge-$(date +\%Y\%m\%d).db"</code
-			></pre>
+		<strong>Cron job</strong> — Schedule a nightly <code>mysqldump</code>.
 	</li>
 	<li>
-		<strong>Volume snapshots</strong> — If using Railway, Fly.io, or a cloud VPS, take periodic snapshots
-		of the volume containing the database.
-	</li>
-	<li>
-		<strong>Off-site sync</strong> — Use <code>rclone</code> or <code>rsync</code> to copy backups to
-		cloud storage (S3, R2, etc.) for disaster recovery.
+		<strong>Managed Backups</strong> — If using a managed database service, enable automatic daily snapshots and point-in-time recovery.
 	</li>
 </ul>
 
@@ -532,25 +498,13 @@ cp svelteforge.db svelteforge.db-wal svelteforge.db-shm /backups/</code
 
 <ul>
 	<li>
-		<strong>WAL mode enables concurrent reads</strong> — Multiple <strong>SvelteKit</strong> server load
-		functions can query the database simultaneously without blocking each other. This is enabled by default
-		in SvelteForge Admin.
+		<strong>Connection Pooling</strong> — SvelteForge Admin uses connection pooling via <code>mysql2</code> to handle concurrent requests efficiently.
 	</li>
 	<li>
-		<strong>Single-writer limitation</strong> — Only one write transaction can execute at a time. This
-		is fine for admin dashboards where write operations are infrequent (user updates, page edits, setting
-		changes). SQLite handles thousands of writes per second on modern hardware.
+		<strong>Indexes are critical</strong> — Ensure columns used in <code>WHERE</code> and <code>JOIN</code> clauses are indexed for optimal query performance.
 	</li>
 	<li>
-		<strong>No connection pooling needed</strong> — better-sqlite3 is synchronous and runs in the
-		same process as your <strong>SvelteKit</strong> server. There is no network overhead, no connection
-		handshake, and no pool to manage.
-	</li>
-	<li>
-		<strong>Synchronous by design</strong> — better-sqlite3 queries are synchronous, which means
-		they block the Node.js event loop. For the small result sets typical of admin dashboards (tens
-		to hundreds of rows), this is imperceptible. If you ever need to handle thousands of concurrent
-		users, consider switching to PostgreSQL with <code>@sveltejs/adapter-node</code>.
+		<strong>Network Latency</strong> — Unlike SQLite, MySQL involves network calls. Host your database in the same region as your application to minimize latency.
 	</li>
 </ul>
 
@@ -584,11 +538,8 @@ cp svelteforge.db svelteforge.db-wal svelteforge.db-shm /backups/</code
 			>
 		</tr>
 		<tr>
-			<td><strong>Database file location</strong></td>
-			<td
-				>Keep the SQLite file outside the public web root. In Docker, use <code>/app/data/</code> —
-				never serve it from <code>/app/build/client/</code>.</td
-			>
+			<td><strong>Database access</strong></td>
+			<td>Ensure your MySQL instance is not publicly accessible. Use VPCs or firewall rules to restrict access to your application server.</td>
 		</tr>
 		<tr>
 			<td><strong>Regular backups</strong></td>

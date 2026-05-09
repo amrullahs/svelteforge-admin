@@ -30,21 +30,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const [usersThisMonth] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(users)
-		.where(sql`created_at >= ${thisMonthSec}`);
+		.where(sql`created_at >= ${thisMonthStart}`);
 	const [usersLastMonth] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(users)
-		.where(sql`created_at >= ${lastMonthSec} AND created_at < ${thisMonthSec}`);
+		.where(sql`created_at >= ${lastMonthStart} AND created_at < ${thisMonthStart}`);
 
 	// Trend: pages this month vs last month
 	const [pagesThisMonth] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(pages)
-		.where(sql`created_at >= ${thisMonthSec}`);
+		.where(sql`created_at >= ${thisMonthStart}`);
 	const [pagesLastMonth] = await db
 		.select({ count: sql<number>`count(*)` })
 		.from(pages)
-		.where(sql`created_at >= ${lastMonthSec} AND created_at < ${thisMonthSec}`);
+		.where(sql`created_at >= ${lastMonthStart} AND created_at < ${thisMonthStart}`);
 
 	function calcTrend(current: number, previous: number) {
 		if (previous === 0) return current > 0 ? 100 : 0;
@@ -63,12 +63,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Monthly user signups for chart
 	const monthlySignups = await db
 		.select({
-			month: sql<string>`strftime('%Y-%m-01', created_at, 'unixepoch')`,
+			month: sql<string>`DATE_FORMAT(created_at, '%Y-%m-01')`,
 			count: sql<number>`count(*)`,
 		})
 		.from(users)
-		.groupBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`)
-		.orderBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`);
+		.groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`)
+		.orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
 	// Recent activity: newest users and pages
 	const recentUsers = await db
@@ -144,17 +144,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.groupBy(pages.status);
 
 	// Content creation trend (last 6 months, by status)
-	const sixMonthsAgoSec = Math.floor(new Date(Date.now() - 180 * 86400000).getTime() / 1000);
+	const sixMonthsAgo = new Date(Date.now() - 180 * 86400000);
 	const contentTrend = await db
 		.select({
-			month: sql<string>`strftime('%Y-%m-01', created_at, 'unixepoch')`,
+			month: sql<string>`DATE_FORMAT(created_at, '%Y-%m-01')`,
 			status: pages.status,
 			count: sql<number>`count(*)`,
 		})
 		.from(pages)
-		.where(sql`created_at >= ${sixMonthsAgoSec}`)
-		.groupBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`, pages.status)
-		.orderBy(sql`strftime('%Y-%m', created_at, 'unixepoch')`);
+		.where(sql`created_at >= ${sixMonthsAgo}`)
+		.groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`, pages.status)
+		.orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
 	// System status
 	const maintenanceSetting = await db.query.appSettings.findFirst({

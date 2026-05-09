@@ -2,7 +2,7 @@
 	<title>Testing - SvelteForge Admin Documentation</title>
 	<meta
 		name="description"
-		content="Complete testing guide for SvelteForge Admin — Vitest unit tests with in-memory SQLite, Playwright E2E tests, and testing patterns for Svelte 5 and SvelteKit form actions."
+		content="Complete testing guide for SvelteForge Admin — Vitest unit tests with dedicated MySQL test database, Playwright E2E tests, and testing patterns for Svelte 5 and SvelteKit form actions."
 	/>
 </svelte:head>
 
@@ -76,9 +76,8 @@ export default defineConfig(&#123;
 
 <p>
 	This is the most critical pattern in SvelteForge's testing setup. Tests
-	<strong>never touch the development database</strong>. Instead, each test gets a fresh in-memory
-	SQLite database with the full schema applied. This ensures tests are fast, isolated, and
-	repeatable.
+	<strong>never touch the development database</strong>. Instead, each test suite uses a dedicated
+	MySQL test database. This ensures tests are isolated from your development data.
 </p>
 
 <h3>How It Works</h3>
@@ -97,49 +96,21 @@ export default defineConfig(&#123;
 
 <pre><code class="language-ts"
 		>// test-utils.ts
-import Database from "better-sqlite3";
-import &#123; drizzle &#125; from "drizzle-orm/better-sqlite3";
-
-const SCHEMA_SQL = `
-  CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'viewer',
-    avatar_url TEXT,
-    created_at INTEGER DEFAULT (unixepoch()),
-    updated_at INTEGER DEFAULT (unixepoch())
-  );
-
-  CREATE TABLE sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id),
-    expires_at INTEGER NOT NULL,
-    user_agent TEXT,
-    ip_address TEXT,
-    created_at INTEGER DEFAULT (unixepoch())
-  );
-
-  -- ... remaining tables (pages, notifications, appSettings, etc.)
-`;
+import &#123; createPool &#125; from "mysql2/promise";
+import &#123; drizzle &#125; from "drizzle-orm/mysql2";
+import * as schema from "./schema.js";
 
 export function createTestDb() &#123;
-  const sqlite = new Database(":memory:");
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.exec(SCHEMA_SQL);
-  return drizzle(sqlite);
-&#125;</code
-	></pre>
+  const connectionString = process.env.TEST_DATABASE_URL || "mysql://root:password@localhost:3306/svelteforge_test";
+  const pool = createPool(connectionString);
+  return drizzle(pool, &#123; schema, mode: "default" &#125;);
+&#125;</code></pre>
 
-<div class="not-prose my-6 rounded-lg border-l-4 border-amber-500 bg-amber-500/10 p-4">
-	<p class="text-foreground text-sm font-semibold">Important: Keep SCHEMA_SQL in Sync</p>
+<div class="not-prose my-6 rounded-lg border-l-4 border-blue-500 bg-blue-500/10 p-4">
+	<p class="text-foreground text-sm font-semibold">Tip: Using a Test Database</p>
 	<p class="text-muted-foreground mt-1 text-sm">
-		After modifying <code>src/lib/server/db/schema.ts</code>, you <strong>must</strong> also update
-		the <code>SCHEMA_SQL</code> string in <code>test-utils.ts</code> to match. Then run
-		<code>pnpm db:push</code> to apply changes to the development database. Failing to keep these in sync
-		will cause test failures with cryptic SQLite errors.
+		Ensure your <code>TEST_DATABASE_URL</code> points to a database that can be wiped. For local development, 
+		running a MySQL container for tests is highly recommended to avoid accidental data loss in your main database.
 	</p>
 </div>
 
@@ -223,8 +194,9 @@ expect(result.success).toBe(true);</code
 <h3><code>createTestDb()</code></h3>
 
 <p>
-	Creates a fresh in-memory SQLite database with the full schema applied. Called in
-	<code>beforeEach</code> to ensure test isolation.
+	Creates a connection to the dedicated MySQL test database. In unit tests, 
+	it is common to use transactions or clean the tables in <code>beforeEach</code> 
+	to ensure test isolation.
 </p>
 
 <h3><code>createTestUser(db, overrides?)</code></h3>
@@ -319,7 +291,7 @@ expect(result.success).toBe(true);</code
     expect(result.success).toBe(true);
 
     // Assert: verify database state
-    const users = testDb.select().from(usersTable).all();
+    const users = await testDb.select().from(usersTable);
     expect(users).toHaveLength(2); // admin + new user
     expect(users[1].email).toBe("new@example.com");
     expect(users[1].role).toBe("editor");
@@ -345,7 +317,7 @@ expect(result.success).toBe(true);</code
     expect(result.status).toBe(403);
 
     // Database should only have the original viewer
-    const users = testDb.select().from(usersTable).all();
+    const users = await testDb.select().from(usersTable);
     expect(users).toHaveLength(1);
   &#125;);
 &#125;);</code
@@ -427,7 +399,7 @@ src/routes/(app)/settings/
 
 <p>
 	End-to-end tests verify complete user flows through the browser, testing the full
-	<strong>Svelte 5</strong> frontend, <strong>SvelteKit</strong> server, and SQLite database together.
+	<strong>Svelte 5</strong> frontend, <strong>SvelteKit</strong> server, and MySQL database together.
 </p>
 
 <h3>Setup</h3>
@@ -501,16 +473,14 @@ test("user can register, login, and access dashboard", async (&#123; page &#125;
 <h3>Test Isolation</h3>
 
 <p>
-	Every test gets a fresh database via <code>beforeEach</code>. This means tests can create, modify,
-	and delete data freely without affecting other tests. No test ordering dependencies, no shared
-	state, no flaky tests from leftover data.
+	Every test suite should ideally run in isolation. For MySQL, this can be achieved by:
 </p>
 
-<pre><code class="language-ts"
-		>beforeEach(() =&gt; &#123;
-  testDb = createTestDb();
-&#125;);</code
-	></pre>
+<ul>
+	<li><strong>Database Transactions</strong> — Wrapping each test in a transaction and rolling it back at the end.</li>
+	<li><strong>Table Truncation</strong> — Wiping relevant tables in <code>beforeEach</code>.</li>
+	<li><strong>Dedicated Schema</strong> — Using a separate database schema for tests.</li>
+</ul>
 
 <h3>Test Both Success and Error Paths</h3>
 
