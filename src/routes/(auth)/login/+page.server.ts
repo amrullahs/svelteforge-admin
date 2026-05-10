@@ -27,9 +27,18 @@ export const actions: Actions = {
 			return fail(400, { message: "Invalid password (6-255 characters required)" });
 		}
 
-		const existingUser = await db.query.users.findFirst({
-			where: or(eq(users.username, username.toLowerCase()), eq(users.email, username.toLowerCase())),
-		});
+		let existingUser;
+		try {
+			const results = await db
+				.select()
+				.from(users)
+				.where(or(eq(users.username, username.toLowerCase()), eq(users.email, username.toLowerCase())));
+			
+			existingUser = results[0];
+		} catch (e: any) {
+			console.error("Database Login Error:", e);
+			return fail(500, { message: "Database connection error. Please try again later." });
+		}
 
 		if (!existingUser) {
 			return fail(400, { message: "Incorrect username or password" });

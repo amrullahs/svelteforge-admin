@@ -157,9 +157,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.orderBy(sql`DATE_FORMAT(created_at, '%Y-%m-01')`);
 
 	// System status
-	const maintenanceSetting = await db.query.appSettings.findFirst({
-		where: eq(appSettings.key, "maintenanceMode"),
-	});
+	let maintenanceSetting;
+	try {
+		const settingsResults = await db
+			.select()
+			.from(appSettings)
+			.where(eq(appSettings.key, "maintenanceMode"));
+		maintenanceSetting = settingsResults[0];
+	} catch (e) {
+		console.error("Dashboard Maintenance Mode Query Error:", e);
+	}
 
 	return {
 		stats: {
