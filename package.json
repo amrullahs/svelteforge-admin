@@ -67,6 +67,9 @@
 			"esbuild",
 			"sharp",
 			"@node-rs/argon2"
+		],
+		"ignoredBuiltDependencies": [
+			"better-sqlite3"
 		]
 	},
 	"dependencies": {
