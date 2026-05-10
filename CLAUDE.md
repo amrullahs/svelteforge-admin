@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SvelteForge Admin is a SvelteKit admin dashboard using Svelte 5, Tailwind CSS v4, custom session-based auth with Arctic OAuth, and Drizzle ORM with SQLite.
+SvelteForge Admin is a SvelteKit admin dashboard using Svelte 5, Tailwind CSS v4, custom session-based auth with Arctic OAuth, and Drizzle ORM with MySQL.
 
 ## Commands
 
@@ -40,7 +40,7 @@ pnpm format:check     # Prettier (check only)
 - **Tailwind CSS v4** — native CSS with `@theme` directive in `src/app.css`, no JS config file. OKLCH color system
 - **shadcn-svelte** — UI components in `$lib/components/ui/`, added via `npx shadcn-svelte@latest add <component>`
 - **Custom session auth** — SHA-256 hashed tokens with @oslojs/crypto, Argon2id password hashing, optional OAuth via Arctic (Google, GitHub)
-- **Drizzle ORM** — SQLite with better-sqlite3, WAL mode. Schema in `src/lib/server/db/schema.ts`
+- **Drizzle ORM** — MySQL with mysql2 driver. Schema in `src/lib/server/db/schema.ts`
 - **LayerChart v2** — D3-based charts. Marked `noExternal` in `vite.config.ts` alongside `svelte-ux` for SSR compatibility
 - **Package manager:** pnpm
 
@@ -79,7 +79,7 @@ The `(app)/+layout.server.ts` guard also enforces **maintenance mode**: when `ap
 
 ### Database
 
-SQLite database file: `svelteforge.db` (project root, gitignored). Roles enum: `admin | editor | viewer`. First registered user gets `admin` role.
+MySQL database. Roles enum: `admin | editor | viewer`. First registered user gets `admin` role.
 
 **Notifications with `userId = NULL` are global** — every user sees them. Per-user notifications set `userId` to the recipient. The `(app)/+layout.server.ts` filter (`eq(userId, X) OR isNull(userId)`) is the canonical pattern for any notification query.
 
@@ -87,7 +87,7 @@ SQLite database file: `svelteforge.db` (project root, gitignored). Roles enum: `
 
 Tests co-locate with their route: e.g., `src/routes/(app)/users/users.test.ts` tests the `users/+page.server.ts` load and actions.
 
-**Test DB pattern:** Tests mock `$lib/server/db/index.js` with a getter that returns an in-memory SQLite database created via `createTestDb()` from `test-utils.ts`. The mock must be set up before dynamically importing the server module:
+**Test DB pattern:** Tests mock `$lib/server/db/index.js` with a getter that returns a test MySQL database. The mock must be set up before dynamically importing the server module:
 
 ```ts
 vi.mock("$lib/server/db/index.js", () => ({
@@ -108,5 +108,5 @@ After modifying `schema.ts`, also update the `SCHEMA_SQL` in `test-utils.ts` and
 - Dark/light mode via `mode-watcher` — use `mode.current` (runes object), NOT `$mode`
 - App shell layout: sidebar (`app-sidebar.svelte`) + topbar with breadcrumbs (generated from URL pathname)
 - `App.Locals` typed in `src/app.d.ts` — `user: SessionUser | null`, `session: Session | null`
-- `seed.ts` runs outside SvelteKit context — use relative imports (not `$lib/`) and `generateId()` from `$lib/server/id.js`
+- `seed.ts` runs outside SvelteKit context — use relative imports (not `$lib/`) and `generateId()` from `$lib/server/id.js`. Set environment variables via `.env`.
 - LayerChart and `svelte-ux` must stay in `ssr.noExternal` in `vite.config.ts` — without it, SSR breaks on chart pages

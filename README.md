@@ -116,7 +116,7 @@ Loved SvelteForge? Supercharge your workflow with our premium templates on [Dash
 | ------------- | ------------------------------------------------------------ |
 | **Framework** | SvelteKit 2.59 + Svelte 5 (runes API)                        |
 | **Styling**   | Tailwind CSS 4 + shadcn-svelte                               |
-| **Database**  | SQLite via Drizzle ORM + better-sqlite3 (WAL mode)           |
+| **Database**  | MySQL via Drizzle ORM + mysql2 driver                        |
 | **Auth**      | Custom sessions (@oslojs/crypto) + Argon2id password hashing |
 | **OAuth**     | Arctic (Google + GitHub) -- optional, environment-driven     |
 | **Charts**    | LayerChart v2 (D3-based)                                     |
@@ -245,7 +245,7 @@ cd svelteforge-admin
 # Install dependencies
 pnpm install
 
-# Push database schema (creates SQLite database)
+# Push database schema (creates MySQL tables)
 pnpm db:push
 
 # Seed the database with sample data (optional)
@@ -418,43 +418,24 @@ src/
 
 ## Deployment
 
-### Requirements
-
-SvelteForge Admin uses **SQLite** with the `better-sqlite3` native module. Your hosting environment must support:
-
-- **Node.js runtime** (not edge/serverless)
-- **Native module compilation** (better-sqlite3)
-- **Persistent filesystem** (for the SQLite database file)
+SvelteForge Admin requires a MySQL server instance and a standard Node.js runtime.
 
 ### Recommended Hosting
 
 | Provider                        | Tier                | Notes                                |
 | ------------------------------- | ------------------- | ------------------------------------ |
-| **Railway**                     | Free tier available | One-click deploy, persistent volumes |
-| **Fly.io**                      | Free tier available | Global edge, persistent volumes      |
-| **Render**                      | Free tier available | Auto-deploy from GitHub              |
-| **VPS** (DigitalOcean, Hetzner) | From ~$4/mo         | Full control, Docker-friendly        |
+| **Railway**                     | Free tier available | One-click deploy, managed MySQL      |
+| **Fly.io**                      | Free tier available | Global edge, managed MySQL           |
+| **Render**                      | Free tier available | Auto-deploy, managed MySQL           |
+| **VPS** (DigitalOcean, Hetzner) | From ~$4/mo         | Full control                         |
 
-### Not Compatible
 
-- **Cloudflare Pages/Workers** -- V8 isolates cannot run native Node modules (better-sqlite3)
-- **Vercel Edge** -- Same limitation as Cloudflare
-- **AWS Lambda** -- No persistent filesystem for SQLite
-
-### Docker
-
-A `Dockerfile` is included for containerized deployments:
-
-```bash
-docker build -t svelteforge-admin .
-docker run -p 3000:3000 -v ./data:/app/data svelteforge-admin
-```
 
 ### Environment Variables
 
 ```env
 # Required
-DATABASE_URL=svelteforge.db        # SQLite database file path
+DATABASE_URL=mysql://user:password@host:3306/dbname
 
 # Required for production
 ORIGIN=https://yourdomain.com      # Used for OAuth redirect URIs

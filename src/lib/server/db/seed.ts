@@ -1,5 +1,6 @@
 import { db } from "./index.js";
-import { users, pages, notifications, appSettings, sessions } from "./schema.js";
+import { users, pages, notifications, appSettings, sessions, roles, permissions, rolePermissions, oauthAccounts, passwordResetTokens } from "./schema.js";
+import { scanAndBuildPermissions } from "../permissions.js";
 import { hash } from "@node-rs/argon2";
 import { generateId } from "../id.js";
 
@@ -24,11 +25,28 @@ function randomInt(min: number, max: number): number {
 
 async function seed() {
 	console.log("Clearing existing data...");
+	await db.delete(rolePermissions);
+	await db.delete(permissions);
+	await db.delete(roles);
+	await db.delete(oauthAccounts);
+	await db.delete(passwordResetTokens);
 	await db.delete(notifications);
 	await db.delete(pages);
 	await db.delete(sessions);
 	await db.delete(appSettings);
 	await db.delete(users);
+
+	// --- ROLES ---
+	console.log("Creating default roles...");
+	await db.insert(roles).values([
+		{ id: "admin", name: "admin", description: "Super administrator with full access" },
+		{ id: "editor", name: "editor", description: "Can manage content but not system settings" },
+		{ id: "viewer", name: "viewer", description: "Read-only access to the dashboard" },
+	]);
+
+	// --- PERMISSIONS ---
+	console.log("Scanning and building permissions...");
+	await scanAndBuildPermissions();
 
 	// --- USERS ---
 	// ~50 users with accelerating signups over 12 months (realistic growth curve)
