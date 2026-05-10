@@ -78,7 +78,6 @@
 		"@oslojs/encoding": "^1.1.0",
 		"arctic": "^3.7.0",
 		"clsx": "^2.1.1",
-		"dotenv": "^16.4.7",
 		"drizzle-orm": "^0.45.2",
 		"mysql2": "^3.22.3",
 		"tailwind-merge": "^3.5.0",
