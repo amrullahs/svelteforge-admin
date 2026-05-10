@@ -1,10 +1,11 @@
 import * as dotenv from "dotenv";
+import path from "path";
 import { createPool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "./schema.js";
 
-// Load .env file manually for production and external scripts (seed, etc.)
-dotenv.config();
+// Load .env file from the current working directory
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 /**
  * We use process.env instead of $env/dynamic/private here 
