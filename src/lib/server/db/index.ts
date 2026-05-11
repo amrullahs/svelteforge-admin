@@ -1,24 +1,16 @@
-import { env } from "$env/dynamic/private";
+import * as dotenv from "dotenv";
 import { createPool } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "./schema.js";
 
-/**
- * We prioritize SvelteKit's environment variables ($env/dynamic/private) 
- * but fall back to process.env for external scripts like the seeder (tsx).
- */
-let connectionString = env.DATABASE_URL || process.env.DATABASE_URL;
+// Load .env if not already loaded (useful for seeder and non-SvelteKit environments)
+dotenv.config();
 
-// Fallback for external scripts (seed, drizzle-kit) that don't have $env
-if (!connectionString) {
-	try {
-		const dotenv = await import("dotenv");
-		dotenv.config();
-		connectionString = process.env.DATABASE_URL;
-	} catch (e) {
-		// dotenv not available or failed, ignore
-	}
-}
+/**
+ * We use process.env to be compatible with both SvelteKit and external scripts (tsx).
+ * SvelteKit's adapter-node also populates process.env in production.
+ */
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
 	throw new Error("DATABASE_URL must be set in environment variables or .env file");
