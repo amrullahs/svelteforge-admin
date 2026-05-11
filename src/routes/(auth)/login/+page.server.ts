@@ -36,8 +36,14 @@ export const actions: Actions = {
 			
 			existingUser = results[0];
 		} catch (e: any) {
-			console.error("Database Login Error:", e);
-			return fail(500, { message: "Database connection error. Please try again later." });
+			console.error("Login database error:", e);
+			
+			// Distinguish between DB errors and auth errors
+			const errorMessage = e.message?.includes("database") || e.code ? 
+				"Database connection error. Please check server configuration." : 
+				"Invalid username or password";
+				
+			return fail(400, { message: errorMessage });
 		}
 
 		if (!existingUser) {
